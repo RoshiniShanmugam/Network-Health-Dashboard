@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="10">
+    <title>Network Health Oversight</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #0b1329; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card-custom { background-color: #162238; border: 1px solid #233554; border-radius: 12px; }
+
+        /* Table Dark Fix */
+        .table { color: #f8fafc !important; }
+        .table thead tr { background-color: #0d1b2a !important; }
+        .table tbody tr { background-color: #162238 !important; color: #f8fafc !important; }
+        .table tbody td, .table thead th { border-color: #233554 !important; }
+
+        .badge-online { background-color: #10b981; color: #fff; }
+        .badge-offline { background-color: #ef4444; color: #fff; }
+        .text-subtle { color: #94a3b8 !important; }
+
+        .form-control::placeholder { color: #94a3b8 !important; opacity: 1; }
+    </style>
+</head>
+<body>
+
+<div class="container my-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary">
+        <div>
+            <h2 class="fw-bold m-0 text-white"><i class="bi bi-cpu-fill text-primary me-2"></i>Network Health Oversight</h2>
+            <small class="text-subtle">Automated Cisco Infrastructure Telemetry Engine</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/" class="btn btn-outline-primary btn-sm px-3"><i class="bi bi-arrow-clockwise me-1"></i> Refresh Now</a>
+            <span class="btn btn-sm btn-dark text-subtle border border-secondary">
+                <i class="bi bi-clock-history me-1 text-info"></i> Auto Live
+            </span>
+        </div>
+    </div>
+
+    <!-- Summary Metrics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card-custom p-3 border-start border-4 border-primary">
+                <div class="text-subtle small fw-bold text-uppercase">TOTAL MONITORED</div>
+                <div class="fs-2 fw-bold text-white mt-1">{{ total_count }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card-custom p-3 border-start border-4 border-success">
+                <div class="text-subtle small fw-bold text-uppercase">ONLINE DEVICES</div>
+                <div class="fs-2 fw-bold text-success mt-1">{{ online_count }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card-custom p-3 border-start border-4 border-danger">
+                <div class="text-subtle small fw-bold text-uppercase">OFFLINE / CRITICAL</div>
+                <div class="fs-2 fw-bold text-danger mt-1">{{ offline_count }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card-custom p-3 border-start border-4 border-info">
+                <div class="text-subtle small fw-bold text-uppercase">ENGINE STATUS</div>
+                <div class="fs-6 fw-semibold text-info mt-3"><i class="bi bi-activity me-1"></i> Netmiko Active</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Add IP Form -->
+    <div class="card-custom p-3 mb-4">
+        <form action="/add" method="POST" class="row g-2 align-items-center">
+            <div class="col-md-9">
+                <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-subtle"><i class="bi bi-router"></i></span>
+                    <input type="text" name="device_ip" class="form-control bg-dark text-white border-secondary" placeholder="Enter New Device IP (e.g. 192.168.1.100)" required>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100 fw-semibold"><i class="bi bi-plus-circle me-1"></i> Add Target IP</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Main Table -->
+    <div class="card-custom shadow-lg p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title m-0 text-white fw-bold"><i class="bi bi-server me-2 text-primary"></i>Operational Status Table</h5>
+            <span class="badge bg-dark text-info border border-info px-3 py-2">SSH Port 22</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th class="text-subtle">TARGET IP</th>
+                        <th class="text-subtle">TYPE</th>
+                        <th class="text-subtle">STATUS</th>
+                        <th class="text-subtle">CPU LOAD</th>
+                        <th class="text-subtle">MEMORY</th>
+                        <th class="text-subtle">INTERFACES</th>
+                        <th class="text-subtle">LAST CHECKED</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for device in devices %}
+                    <tr>
+                        <td class="fw-bold fs-6 text-warning">{{ device.ip }}</td>
+                        <td><span class="badge bg-dark border border-secondary text-info">Cisco IOS</span></td>
+                        <td>
+                            {% if device.status == 'ONLINE' %}
+                                <span class="badge badge-online px-3 py-2"><i class="bi bi-check-circle-fill me-1"></i> ONLINE</span>
+                            {% else %}
+                                <span class="badge badge-offline px-3 py-2"><i class="bi bi-exclamation-triangle-fill me-1"></i> OFFLINE</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if device.status == 'ONLINE' %}
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height: 16px; background-color: #0b1329;">
+                                        <div class="progress-bar bg-info fw-bold text-dark" role="progressbar" style="width: {{ device.cpu }};"></div>
+                                    </div>
+                                    <span class="small fw-bold text-info">{{ device.cpu }}</span>
+                                </div>
+                            {% else %}
+                                <span class="text-subtle">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if device.status == 'ONLINE' %}
+                                <span class="text-success fw-semibold"><i class="bi bi-cpu me-1"></i>{{ device.memory }}</span>
+                            {% else %}
+                                <span class="text-subtle">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if device.status == 'ONLINE' %}
+                                <span class="badge bg-primary px-2 py-1"><i class="bi bi-ethernet me-1"></i>{{ device.interfaces }} UP</span>
+                            {% else %}
+                                <span class="text-subtle">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="small text-subtle">{{ device.timestamp }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
